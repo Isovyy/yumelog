@@ -100,7 +100,7 @@ export default function Home() {
                   <input
                     className="slug-input"
                     type="text"
-                    placeholder="levi-shrine"
+                    placeholder="A-log"
                     value={slug}
                     onChange={e => handleSlugInput(e.target.value)}
                   />
