@@ -1,0 +1,340 @@
+/* ============================================================
+   landing.css — yumearchive landing & onboarding
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0d0b12;
+  --surface: #16121f;
+  --border:  #2a2438;
+  --text:    #ede8f5;
+  --muted:   #7a6e90;
+  --accent:  #a78bfa;
+  --accent-2:#f0abcb;
+  --danger:  #f87171;
+  --warn-bg: #1e1614;
+  --warn-border: #5a2d2d;
+
+  --radius:    12px;
+  --radius-sm: 8px;
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+/* ── Screens ── */
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.hidden { display: none !important; }
+
+/* ── Home ── */
+
+.home {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.home__eyebrow {
+  font-size: 1.5rem;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.home__title {
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+}
+
+.home__sub {
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Choice ── */
+
+.choice {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.choice__title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.choice-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 500px) { .choice-cards { grid-template-columns: 1fr; } }
+
+.choice-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: border-color 0.15s, transform 0.15s;
+  position: relative;
+}
+
+.choice-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.choice-card__icon {
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.choice-card__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.choice-card__desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  flex: 1;
+}
+
+.choice-card__cta {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.warning-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: #f87171;
+  padding: 0.25em 0.6em;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+/* ── Setup form ── */
+
+.setup {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.setup__title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.setup-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.setup-input {
+  font: inherit;
+  font-size: 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6em 0.85em;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.12s;
+}
+.setup-input:focus { border-color: var(--accent); }
+.setup-input::placeholder { color: var(--muted); }
+
+.slug-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 0.12s;
+}
+.slug-row:focus-within { border-color: var(--accent); }
+
+.slug-prefix {
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 0.6em 0.75em;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+  background: #0f0d16;
+}
+
+.slug-input {
+  font: inherit;
+  font-size: 0.95rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.6em 0.75em;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+.slug-input::placeholder { color: var(--muted); }
+
+.setup-hint {
+  font-size: 0.78rem;
+  min-height: 1.1em;
+}
+.setup-hint--ok    { color: var(--accent); }
+.setup-hint--error { color: var(--danger); }
+
+/* ── Warning box ── */
+
+.warning-box {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #e8c4c4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.warning-box ul {
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.warning-box strong { color: #f87171; }
+
+/* ── Buttons ── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.65em 1.5em;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.12s, transform 0.12s;
+  text-decoration: none;
+}
+.btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+.btn--primary {
+  background: var(--accent);
+  color: #0d0b12;
+  border-color: var(--accent);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn--outline:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+.btn--full { width: 100%; }
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ── Back button ── */
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+  transition: color 0.12s;
+}
+.back-btn:hover { color: var(--text); }
+
+/* ── Login extras ── */
+
+.setup-or {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.setup-note {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: -0.5rem;
+}
