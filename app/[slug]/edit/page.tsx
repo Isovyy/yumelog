@@ -209,6 +209,7 @@ export default function EditPage() {
         <button className="picker__option" data-type="heading"><span className="picker__icon">T</span> Heading</button>
         <button className="picker__option" data-type="text"><span className="picker__icon">¶</span> Text</button>
         <button className="picker__option" data-type="divider"><span className="picker__icon">—</span> Divider</button>
+        <button className="picker__option" data-type="color-code"><span className="picker__icon">◉</span> Color Code</button>
       </div>
 
       {/* Format bar */}

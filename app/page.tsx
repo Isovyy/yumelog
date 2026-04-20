@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import './landing.css'
 
-type Screen = 'home' | 'choice' | 'anon' | 'login'
+type Screen = 'choice' | 'anon' | 'login'
 
 export default function Home() {
-  const [screen, setScreen]     = useState<Screen>('home')
+  const [screen, setScreen]     = useState<Screen>('choice')
   const [slug, setSlug]         = useState('')
   const [slugHint, setSlugHint] = useState<{ text: string; ok: boolean } | null>(null)
   const [password, setPassword] = useState('')
@@ -46,23 +46,9 @@ export default function Home() {
 
   return (
     <>
-      {screen === 'home' && (
-        <section className="screen">
-          <div className="home">
-            <p className="home__eyebrow">✦</p>
-            <h1 className="home__title">yumearchive</h1>
-            <p className="home__sub">an archive for your one true ship</p>
-            <button className="btn btn--primary" onClick={() => setScreen('choice')}>
-              Get started
-            </button>
-          </div>
-        </section>
-      )}
-
       {screen === 'choice' && (
         <section className="screen">
           <div className="choice">
-            <button className="back-btn" onClick={() => setScreen('home')}>← back</button>
             <h2 className="choice__title">How do you want to continue?</h2>
             <div className="choice-cards">
 
@@ -89,7 +75,6 @@ export default function Home() {
       {screen === 'anon' && (
         <section className="screen">
           <div className="setup">
-            <button className="back-btn" onClick={() => setScreen('choice')}>← back</button>
             <h2 className="setup__title">Create your archive</h2>
 
             <div className="setup-form">
@@ -153,7 +138,6 @@ export default function Home() {
       {screen === 'login' && (
         <section className="screen">
           <div className="setup">
-            <button className="back-btn" onClick={() => setScreen('choice')}>← back</button>
             <h2 className="setup__title">Log in or sign up</h2>
             <div className="setup-form">
               <div className="setup-field">

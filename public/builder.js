@@ -15,6 +15,8 @@ let page, emptyState, addContainerBtn, containerPicker, blockPicker, formatBar, 
 let idCounter  = 0;
 let saveTimer  = null;
 let activeCol  = null; // column el that the block picker was opened from
+let colorA     = '#7c6af7';
+let colorB     = '#f06c9b';
 
 function uid() { return String(++idCounter); }
 
@@ -55,7 +57,7 @@ function readPageState() {
 
 function addContainer(cols, existingId) {
   const id = existingId || uid();
-  emptyState.style.display = 'none';
+  if (emptyState) emptyState.style.display = 'none';
 
   const wrap = document.createElement('div');
   wrap.className    = 'container-wrap';
@@ -84,7 +86,7 @@ function addContainer(cols, existingId) {
 
 function removeContainer(btn) {
   btn.closest('.container-wrap').remove();
-  if (!page.querySelector('.container-wrap')) emptyState.style.display = '';
+  if (emptyState && !page.querySelector('.container-wrap')) emptyState.style.display = '';
   scheduleSave();
 }
 
@@ -144,9 +146,11 @@ function addBlock(type, data, existingId, targetCol) {
   block.innerHTML = `
     <div class="block-toolbar">
       <span class="block-label">${meta.icon} ${meta.label}</span>
-      <button class="toolbar-btn toolbar-btn--sm" title="Move up"   onclick="moveBlock(this,-1)">↑</button>
-      <button class="toolbar-btn toolbar-btn--sm" title="Move down" onclick="moveBlock(this, 1)">↓</button>
-      <button class="toolbar-btn toolbar-btn--sm toolbar-btn--del"  title="Delete" onclick="removeBlock(this)">✕</button>
+      <button class="toolbar-btn toolbar-btn--sm" title="Move left"  onclick="moveBlockToCol(this,-1)">←</button>
+      <button class="toolbar-btn toolbar-btn--sm" title="Move right" onclick="moveBlockToCol(this, 1)">→</button>
+      <button class="toolbar-btn toolbar-btn--sm" title="Move up"    onclick="moveBlock(this,-1)">↑</button>
+      <button class="toolbar-btn toolbar-btn--sm" title="Move down"  onclick="moveBlock(this, 1)">↓</button>
+      <button class="toolbar-btn toolbar-btn--sm toolbar-btn--del"   title="Delete" onclick="removeBlock(this)">✕</button>
     </div>
     <div class="block-body">${blockHTML(type)}</div>
   `;
@@ -159,6 +163,11 @@ function addBlock(type, data, existingId, targetCol) {
 
   wireBlockBehavior(block);
 
+  // Auto-add color-code block the first time a color-dependent block is manually added
+  if (!existingId && !data && COLOR_DEPENDENT_TYPES.has(type)) {
+    autoAddColorCode(block.closest('.container-wrap'));
+  }
+
   if (!existingId && !data) focusFirstInput(block);
 
   block.addEventListener('input',  scheduleSave);
@@ -169,6 +178,16 @@ function addBlock(type, data, existingId, targetCol) {
 
 function removeBlock(btn) {
   btn.closest('.block').remove();
+  scheduleSave();
+}
+
+function moveBlockToCol(btn, dir) {
+  const block  = btn.closest('.block');
+  const col    = block.closest('.col');
+  const cols   = [...col.closest('.container-wrap').querySelectorAll('.col')];
+  const target = cols[cols.indexOf(col) + dir];
+  if (!target) return;
+  target.insertBefore(block, target.querySelector('.col-add-btn'));
   scheduleSave();
 }
 
@@ -208,6 +227,7 @@ const BLOCK_META = {
   'heading':           { icon: 'T', label: 'Heading' },
   'text':              { icon: '¶', label: 'Text' },
   'divider':           { icon: '—', label: 'Divider' },
+  'color-code':        { icon: '◉', label: 'Color Code' },
 };
 
 // ─────────────────────────────────────────────
@@ -251,17 +271,18 @@ function blockHTML(type) {
     case 'character-portrait': return `
       <div class="portrait-block">
         <div class="portrait-img-wrap" onclick="pickPortraitImg(this)">
-          <div class="portrait-placeholder">◫<br><small>click to add image</small></div>
+          <div class="portrait-placeholder">◫<br><small>click to upload image</small></div>
         </div>
-        <input class="portrait-label" data-field="label" type="text" placeholder="A · name">
-        <input class="portrait-source" data-field="source" type="text" placeholder="source media">
+        <input type="file" accept="image/*" class="portrait-file-input" style="display:none">
+        <div class="rich-area portrait-caption" contenteditable="true" data-field="caption"
+             data-placeholder="Add a caption…"></div>
       </div>`;
 
     case 'speech-bubbles': return `
       <div class="bubbles-block">
         <ul class="bubbles-list"></ul>
-        <button class="list-add-btn" onclick="addBubble(this.previousElementSibling, 'me')">+ A</button>
-        <button class="list-add-btn" onclick="addBubble(this.previousElementSibling, 'fo')">+ B</button>
+        <button class="list-add-btn" onclick="addBubble(this.closest('.bubbles-block').querySelector('.bubbles-list'), 'me')">+ A</button>
+        <button class="list-add-btn" onclick="addBubble(this.closest('.bubbles-block').querySelector('.bubbles-list'), 'fo')">+ B</button>
       </div>`;
 
     case 'dynamic-axis': return `
@@ -302,7 +323,6 @@ function blockHTML(type) {
         <svg class="ha-svg" viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="ha-labels">
           <div class="ha-person-label">
-            <input data-field="color_a" type="color" value="#7c6af7" class="ha-color">
             <input data-field="name_a" type="text" placeholder="A" class="ha-name">
             <div class="ha-height-row">
               <input data-field="height_a" type="number" placeholder="160" class="ha-height" min="0">
@@ -310,7 +330,6 @@ function blockHTML(type) {
             </div>
           </div>
           <div class="ha-person-label">
-            <input data-field="color_b" type="color" value="#f06c9b" class="ha-color">
             <input data-field="name_b" type="text" placeholder="B" class="ha-name">
             <div class="ha-height-row">
               <input data-field="height_b" type="number" placeholder="175" class="ha-height" min="0">
@@ -389,6 +408,18 @@ function blockHTML(type) {
 
     case 'divider': return `<hr>`;
 
+    case 'color-code': return `
+      <div class="color-code-block">
+        <label class="cc-item">
+          <input type="color" data-field="color_a" class="cc-wheel" value="#7c6af7">
+          <span class="cc-label">A</span>
+        </label>
+        <label class="cc-item">
+          <input type="color" data-field="color_b" class="cc-wheel" value="#f06c9b">
+          <span class="cc-label">B</span>
+        </label>
+      </div>`;
+
     default: return `<p style="color:#888;font-size:.85rem;">Unknown block: ${escHTML(type)}</p>`;
   }
 }
@@ -406,8 +437,36 @@ function wireBlockBehavior(block) {
   // Dynamic axis — sync sliders to dot positions
   if (type === 'dynamic-axis') wireAxis(block);
 
-  // Height diff — sync sliders to bar heights
+  // Height diff — sync height inputs to stickman SVG
   if (type === 'height-diff') wireHeightAge(block);
+
+  // Color code — update global A/B colors
+  if (type === 'color-code') wireColorCode(block);
+}
+
+function wireColorCode(block) {
+  const inputA = block.querySelector('[data-field="color_a"]');
+  const inputB = block.querySelector('[data-field="color_b"]');
+  function update() {
+    colorA = inputA.value;
+    colorB = inputB.value;
+    applyGlobalColors();
+  }
+  inputA.addEventListener('input', update);
+  inputB.addEventListener('input', update);
+  update();
+}
+
+const COLOR_DEPENDENT_TYPES = new Set(['height-diff', 'dynamic-axis', 'speech-bubbles']);
+
+function autoAddColorCode(targetContainer) {
+  if (page.querySelector('.block[data-type="color-code"]')) return;
+  const col = targetContainer.querySelector('.col');
+  if (!col) return;
+  const ccBlock = addBlock('color-code', null, null, col);
+  // move to top of the column, before any other blocks
+  const firstBlock = col.querySelector('.block');
+  if (firstBlock && firstBlock !== ccBlock) col.insertBefore(ccBlock, firstBlock);
 }
 
 function wireAxis(block) {
@@ -431,8 +490,6 @@ function wireHeightAge(block) {
   const svg    = block.querySelector('.ha-svg');
   const inputA = block.querySelector('[data-field="height_a"]');
   const inputB = block.querySelector('[data-field="height_b"]');
-  const colorA = block.querySelector('[data-field="color_a"]');
-  const colorB = block.querySelector('[data-field="color_b"]');
 
   function update() {
     const a   = parseFloat(inputA.value) || 0;
@@ -443,15 +500,36 @@ function wireHeightAge(block) {
 
     svg.innerHTML =
       `<line x1="10" y1="${baseline}" x2="110" y2="${baseline}" stroke="#e0e0e0" stroke-width="1"/>` +
-      stickmanSVG(35, baseline, maxH * (a / max), colorA.value) +
-      stickmanSVG(85, baseline, maxH * (b / max), colorB.value);
+      stickmanSVG(35, baseline, maxH * (a / max), colorA) +
+      stickmanSVG(85, baseline, maxH * (b / max), colorB);
   }
 
   inputA.addEventListener('input', update);
   inputB.addEventListener('input', update);
-  colorA.addEventListener('input', update);
-  colorB.addEventListener('input', update);
+  block._updateHeightSVG = update;
   update();
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function applyGlobalColors() {
+  const root = document.documentElement;
+  root.style.setProperty('--dot-a', colorA);
+  root.style.setProperty('--dot-b', colorB);
+  root.style.setProperty('--bubble-a-bg',    hexToRgba(colorA, 0.13));
+  root.style.setProperty('--bubble-a-color', colorA);
+  root.style.setProperty('--bubble-b-bg',    hexToRgba(colorB, 0.13));
+  root.style.setProperty('--bubble-b-color', colorB);
+  if (page) {
+    page.querySelectorAll('.block[data-type="height-diff"]').forEach(b => {
+      if (b._updateHeightSVG) b._updateHeightSVG();
+    });
+  }
 }
 
 function stickmanSVG(cx, baseline, h, color) {
@@ -562,11 +640,37 @@ function addFicRow(list, item) {
   scheduleSave();
 }
 
+function resizeImage(file, maxPx = 800, quality = 0.82) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function pickPortraitImg(wrap) {
-  const url = prompt('Image URL:');
-  if (!url) return;
-  wrap.innerHTML = `<img src="${escAttr(url)}" alt="" class="portrait-img">`;
-  scheduleSave();
+  const block     = wrap.closest('.block');
+  const fileInput = block.querySelector('.portrait-file-input');
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const dataUrl = await resizeImage(file);
+    wrap.innerHTML = `<img src="${escAttr(dataUrl)}" alt="" class="portrait-img">`;
+    scheduleSave();
+    fileInput.value = '';
+  };
+  fileInput.click();
 }
 
 // ─────────────────────────────────────────────
@@ -736,6 +840,8 @@ function initBuilderDOM() {
   saveIndicator   = document.getElementById('save-indicator');
   previewBtn      = document.getElementById('preview-btn');
 
+  applyGlobalColors();
+
   // ── Container picker ────────────────────────
 
   addContainerBtn.addEventListener('click', e => {
@@ -903,6 +1009,7 @@ window.initBuilder = function(slug, existingData) {
   const draftKey = `yumearchive_draft_${slug}`;
   const hasDraft = localStorage.getItem(draftKey);
   if (!hasDraft && existingData && existingData.containers) {
+    restoreColors(existingData.colors);
     existingData.containers.forEach(c => {
       const numId = parseInt(c.id);
       if (numId > idCounter) idCounter = numId;
@@ -918,6 +1025,7 @@ window.initBuilder = function(slug, existingData) {
         });
       });
     });
+    applyGlobalColors();
   }
 };
 
@@ -929,7 +1037,7 @@ window.publishArchive = async function(password) {
   const res = await fetch(`/api/archive/${slug}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, data: { containers } }),
+    body: JSON.stringify({ password, data: { containers, colors: { a: colorA, b: colorB } } }),
   });
   const json = await res.json();
   return { ok: res.ok, error: json.error };
@@ -940,11 +1048,18 @@ function commitSave() {
   const slug = window.__ys_slug;
   const key  = slug ? `yumearchive_draft_${slug}` : 'yumearchive_v1';
   const containers = readPageState();
-  localStorage.setItem(key, JSON.stringify({ containers }));
+  localStorage.setItem(key, JSON.stringify({ containers, colors: { a: colorA, b: colorB } }));
   if (saveIndicator) {
     saveIndicator.textContent = 'draft saved';
     setTimeout(() => { saveIndicator.textContent = ''; }, 2000);
   }
+}
+
+function restoreColors(saved) {
+  if (!saved) return;
+  if (saved.a) colorA = saved.a;
+  if (saved.b) colorB = saved.b;
+  applyGlobalColors();
 }
 
 // Override loadSave to use slug-specific key
@@ -955,7 +1070,8 @@ window.loadDraft = function(slug) {
   const raw = localStorage.getItem(key);
   if (!raw) return false;
   try {
-    const { containers } = JSON.parse(raw);
+    const { containers, colors } = JSON.parse(raw);
+    restoreColors(colors);
     containers.forEach(c => {
       const numId = parseInt(c.id);
       if (numId > idCounter) idCounter = numId;
@@ -971,6 +1087,35 @@ window.loadDraft = function(slug) {
         });
       });
     });
+    applyGlobalColors();
     return true;
   } catch(e) { return false; }
+};
+
+// ─────────────────────────────────────────────
+//  Public viewer — no editor chrome needed
+// ─────────────────────────────────────────────
+
+window.initViewer = function(slug, data) {
+  page       = document.getElementById('page');
+  emptyState = null;
+
+  if (!data || !data.containers) return;
+  restoreColors(data.colors);
+  data.containers.forEach(c => {
+    const numId = parseInt(c.id);
+    if (numId > idCounter) idCounter = numId;
+    const wrap = addContainer(c.cols, c.id);
+    c.columns.forEach((colData, i) => {
+      const col = wrap.querySelectorAll('.col')[i];
+      if (!col) return;
+      col.dataset.id = colData.id;
+      colData.blocks.forEach(b => {
+        const bNum = parseInt(b.id);
+        if (bNum > idCounter) idCounter = bNum;
+        addBlock(b.type, b.data, b.id, col);
+      });
+    });
+  });
+  applyGlobalColors();
 };
