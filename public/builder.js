@@ -265,19 +265,19 @@ function blockHTML(type) {
 
     case 'ship-header': return `
       <div class="ship-header-block">
-        <input class="ship-header__name" data-field="name" type="text" placeholder="Your name / S/I name">
+        <input class="ship-header__name" data-field="name" type="text" placeholder="Name">
         <span class="ship-header__x">×</span>
-        <input class="ship-header__fo" data-field="fo" type="text" placeholder="F/O name">
-        <input class="ship-header__source" data-field="source" type="text" placeholder="Source — fandom / media">
+        <input class="ship-header__fo" data-field="fo" type="text" placeholder="Name">
+        <input class="ship-header__source" data-field="source" type="text" placeholder="Source">
       </div>`;
 
     case 'about': return `
       <div class="rich-area" contenteditable="true" data-field="body"
-           data-placeholder="Write about your ship…"></div>`;
+           data-placeholder=""></div>`;
 
     case 'ship-tags': return `
       <div class="tag-area" data-tag-field="tags">
-        <input class="tag-area__input" type="text" placeholder="rivals-to-lovers, slow burn…">
+        <input class="tag-area__input" type="text" placeholder="">
       </div>`;
 
     case 'links': return `
@@ -288,10 +288,10 @@ function blockHTML(type) {
       <div class="dni-block">
         <p class="field-label">Please don't interact if you —</p>
         <div class="tag-area" data-tag-field="rules">
-          <input class="tag-area__input" type="text" placeholder="anti yume, under 16…">
+          <input class="tag-area__input" type="text" placeholder="">
         </div>
         <div class="rich-area" contenteditable="true" data-field="note"
-             data-placeholder="Any additional notes…" style="margin-top:.75rem;"></div>
+             data-placeholder="" style="margin-top:.75rem;"></div>
       </div>`;
 
     case 'character-portrait': return `
@@ -370,12 +370,12 @@ function blockHTML(type) {
       <div class="age-diff-block">
         <div class="age-row">
           <div class="age-person">
-            <input data-field="name_a" type="text" placeholder="A (optional)" class="age-name">
+            <input data-field="name_a" type="text" placeholder="A" class="age-name">
             <input data-field="age_a"  type="text" placeholder="age" class="age-val">
           </div>
           <span class="age-sep">/</span>
           <div class="age-person">
-            <input data-field="name_b" type="text" placeholder="B (optional)" class="age-name">
+            <input data-field="name_b" type="text" placeholder="B" class="age-name">
             <input data-field="age_b"  type="text" placeholder="age" class="age-val">
           </div>
         </div>
@@ -393,15 +393,15 @@ function blockHTML(type) {
     case 'quote-letter': return `
       <div class="quote-block">
         <div class="rich-area quote-body" contenteditable="true" data-field="body"
-             data-placeholder="A quote, a letter, a confession…"></div>
-        <input class="quote-attr" data-field="attr" type="text" placeholder="— attribution">
+             data-placeholder=""></div>
+        <input class="quote-attr" data-field="attr" type="text" placeholder="attribution">
       </div>`;
 
     case 'ship-stats': return `
       <div class="stats-block">
         <div class="stat-row">
           <span class="stat-label">Together since</span>
-          <input data-field="since" type="text" placeholder="e.g. 2022, chapter 4…">
+          <input data-field="since" type="text" placeholder="year / chapter">
         </div>
         <div class="stat-row">
           <span class="stat-label">Source</span>
@@ -418,7 +418,7 @@ function blockHTML(type) {
         </div>
         <div class="stat-row">
           <span class="stat-label">Dynamic</span>
-          <input data-field="dynamic" type="text" placeholder="rivals-to-lovers…">
+          <input data-field="dynamic" type="text" placeholder="">
         </div>
       </div>`;
 
@@ -804,7 +804,7 @@ function addBubble(list, side, text) {
   li.dataset.side = side;
   li.innerHTML = `
     <div class="bubble__text" contenteditable="true"
-         data-placeholder="${side === 'me' ? 'A: …' : 'B: …'}">${text || ''}</div>
+         data-placeholder="">${text || ''}</div>
     <button class="row-del bubble__del" onclick="this.closest('li').remove();scheduleSave();">✕</button>
   `;
   list.appendChild(li);
@@ -819,7 +819,7 @@ function addWdwRow(list, item) {
   const fo = item?.fo ?? false;
   li.innerHTML = `
     <input class="wdw-trait" data-field="trait" type="text"
-           placeholder="first to say I love you…" value="${escAttr(item?.trait)}">
+           placeholder="" value="${escAttr(item?.trait)}">
     <label class="wdw-check"><input type="checkbox" data-field="me" ${me ? 'checked' : ''}></label>
     <label class="wdw-check"><input type="checkbox" data-field="fo" ${fo ? 'checked' : ''}></label>
     <button class="row-del" onclick="this.closest('li').remove();scheduleSave();">✕</button>
@@ -872,7 +872,7 @@ function addFicRow(list, item) {
     <div class="fic-row__meta">
       <input data-field="title"  type="text" placeholder="Fic title"    value="${escAttr(item?.title)}">
       <input data-field="author" type="text" placeholder="Author"       value="${escAttr(item?.author)}">
-      <input data-field="url"    type="text" placeholder="Link (AO3…)"  value="${escAttr(item?.url)}">
+      <input data-field="url"    type="text" placeholder="URL"           value="${escAttr(item?.url)}">
     </div>
     <input data-field="note" type="text" placeholder="Why you love it…" value="${escAttr(item?.note)}">
     <button class="row-del" onclick="this.closest('li').remove();scheduleSave();">✕</button>
