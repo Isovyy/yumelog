@@ -14,9 +14,31 @@ let page, emptyState, addContainerBtn, containerPicker, blockPicker, formatBar, 
 
 let idCounter  = 0;
 let saveTimer  = null;
-let activeCol  = null; // column el that the block picker was opened from
+let activeCol  = null;
 let colorA     = '#7c6af7';
 let colorB     = '#f06c9b';
+let dragBlock  = null;
+
+let themeAccent      = '#7c6af7';
+let themeBg          = '#f2f2f2';
+let themeSurface     = '#ffffff';
+let themeBorderColor = '#e2e2e2';
+let themeFontColor   = '#1a1a1a';
+let themeFont        = 'system';
+let themeRadius      = 'rounded';
+let themeBorder      = 'solid';
+
+const FONT_STACKS = {
+  system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+  serif:  "Georgia, 'Times New Roman', serif",
+  mono:   "ui-monospace, 'SF Mono', Consolas, 'Courier New', monospace",
+  nunito: "'Nunito', system-ui, sans-serif",
+  lora:   "'Lora', Georgia, serif",
+};
+const FONT_GFONTS = {
+  nunito: 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+  lora:   'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap',
+};
 
 function uid() { return String(++idCounter); }
 
@@ -81,6 +103,9 @@ function addContainer(cols, existingId) {
   `;
 
   page.appendChild(wrap);
+
+  wrap.querySelectorAll('.col').forEach(wireColDrag);
+
   return wrap;
 }
 
@@ -162,6 +187,7 @@ function addBlock(type, data, existingId, targetCol) {
   if (data) writeBlockData(block, data);
 
   wireBlockBehavior(block);
+  setupBlockDrag(block);
 
   // Auto-add color-code block the first time a color-dependent block is manually added
   if (!existingId && !data && COLOR_DEPENDENT_TYPES.has(type)) {
@@ -274,6 +300,14 @@ function blockHTML(type) {
           <div class="portrait-placeholder">◫<br><small>click to upload image</small></div>
         </div>
         <input type="file" accept="image/*" class="portrait-file-input" style="display:none">
+        <select class="portrait-size" data-field="size" onchange="applyPortraitSize(this)">
+          <option value="">Auto</option>
+          <option value="80px">Tiny</option>
+          <option value="140px">Small</option>
+          <option value="220px">Medium</option>
+          <option value="320px">Large</option>
+          <option value="100%">Full</option>
+        </select>
         <div class="rich-area portrait-caption" contenteditable="true" data-field="caption"
              data-placeholder="Add a caption…"></div>
       </div>`;
@@ -287,23 +321,15 @@ function blockHTML(type) {
 
     case 'dynamic-axis': return `
       <div class="axis-block">
+        <input type="hidden" data-field="pos_a" value="30">
+        <input type="hidden" data-field="pos_b" value="70">
         <div class="axis-poles">
           <input class="axis-pole" data-field="left"  type="text" placeholder="left pole">
           <input class="axis-pole axis-pole--right" data-field="right" type="text" placeholder="right pole">
         </div>
-        <div class="axis-track" id="">
+        <div class="axis-track">
           <div class="axis-dot axis-dot--a" data-dot="a"></div>
           <div class="axis-dot axis-dot--b" data-dot="b"></div>
-        </div>
-        <div class="axis-sliders">
-          <label class="axis-slider-label">
-            <span class="dot-swatch dot-swatch--a"></span> A
-            <input type="range" data-field="pos_a" min="0" max="100" value="30">
-          </label>
-          <label class="axis-slider-label">
-            <span class="dot-swatch dot-swatch--b"></span> B
-            <input type="range" data-field="pos_b" min="0" max="100" value="70">
-          </label>
         </div>
       </div>`;
 
@@ -360,7 +386,8 @@ function blockHTML(type) {
 
     case 'gallery': return `
       <div class="gallery-grid"></div>
-      <button class="list-add-btn" onclick="promptGalleryImg(this.previousElementSibling)">+ add image</button>`;
+      <input type="file" accept="image/*" multiple class="gallery-file-input" style="display:none">
+      <button class="list-add-btn" onclick="pickGalleryImgs(this.closest('.block-body'))">+ add image</button>`;
 
     case 'quote-letter': return `
       <div class="quote-block">
@@ -428,6 +455,82 @@ function blockHTML(type) {
 //  Block behavior wiring
 // ─────────────────────────────────────────────
 
+// ─────────────────────────────────────────────
+//  Drag and drop
+// ─────────────────────────────────────────────
+
+function clearDropIndicators() {
+  document.querySelectorAll('.block--drop-before, .block--drop-after')
+    .forEach(el => el.classList.remove('block--drop-before', 'block--drop-after'));
+}
+
+function setupBlockDrag(block) {
+  const toolbar = block.querySelector('.block-toolbar');
+  block.setAttribute('draggable', 'false');
+
+  toolbar.addEventListener('mousedown', () => block.setAttribute('draggable', 'true'));
+
+  block.addEventListener('dragstart', e => {
+    if (block.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
+    dragBlock = block;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    requestAnimationFrame(() => block.classList.add('block--dragging'));
+  });
+
+  block.addEventListener('dragend', () => {
+    block.setAttribute('draggable', 'false');
+    block.classList.remove('block--dragging');
+    clearDropIndicators();
+    dragBlock = null;
+  });
+
+  block.addEventListener('dragover', e => {
+    if (!dragBlock || dragBlock === block) return;
+    e.preventDefault();
+    e.stopPropagation();
+    clearDropIndicators();
+    const mid = block.getBoundingClientRect().top + block.offsetHeight / 2;
+    block.classList.add(e.clientY < mid ? 'block--drop-before' : 'block--drop-after');
+  });
+
+  block.addEventListener('dragleave', () => {
+    block.classList.remove('block--drop-before', 'block--drop-after');
+  });
+
+  block.addEventListener('drop', e => {
+    if (!dragBlock || dragBlock === block) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const mid = block.getBoundingClientRect().top + block.offsetHeight / 2;
+    block.parentElement.insertBefore(dragBlock, e.clientY < mid ? block : block.nextSibling);
+    clearDropIndicators();
+    scheduleSave();
+  });
+}
+
+function wireColDrag(col) {
+  col.addEventListener('dragover', e => {
+    if (!dragBlock || e.target.closest('.block')) return;
+    e.preventDefault();
+    clearDropIndicators();
+    col.classList.add('col--drop-target');
+  });
+
+  col.addEventListener('dragleave', e => {
+    if (!col.contains(e.relatedTarget)) col.classList.remove('col--drop-target');
+  });
+
+  col.addEventListener('drop', e => {
+    if (!dragBlock || e.target.closest('.block')) return;
+    e.preventDefault();
+    col.insertBefore(dragBlock, col.querySelector('.col-add-btn'));
+    col.classList.remove('col--drop-target');
+    clearDropIndicators();
+    scheduleSave();
+  });
+}
+
 function wireBlockBehavior(block) {
   const type = block.dataset.type;
 
@@ -442,6 +545,17 @@ function wireBlockBehavior(block) {
 
   // Color code — update global A/B colors
   if (type === 'color-code') wireColorCode(block);
+
+  // Character portrait — apply saved size
+  if (type === 'character-portrait') {
+    const sel = block.querySelector('.portrait-size');
+    if (sel) applyPortraitSize(sel);
+  }
+}
+
+function applyPortraitSize(select) {
+  const wrap = select.closest('.portrait-block').querySelector('.portrait-img-wrap');
+  wrap.style.maxWidth = select.value || '';
 }
 
 function wireColorCode(block) {
@@ -457,6 +571,19 @@ function wireColorCode(block) {
   update();
 }
 
+function syncThemeBar() {
+  const tbAccent  = document.getElementById('tb-accent');
+  if (!tbAccent) return;
+  tbAccent.value                                               = themeAccent;
+  document.getElementById('tb-bg').value                      = themeBg;
+  document.getElementById('tb-surface').value                 = themeSurface;
+  document.getElementById('tb-border-color').value            = themeBorderColor;
+  document.getElementById('tb-font-color').value              = themeFontColor;
+  document.getElementById('tb-font').value                    = themeFont;
+  document.getElementById('tb-radius').value                  = themeRadius;
+  document.getElementById('tb-border').value                  = themeBorder;
+}
+
 const COLOR_DEPENDENT_TYPES = new Set(['height-diff', 'dynamic-axis', 'speech-bubbles']);
 
 function autoAddColorCode(targetContainer) {
@@ -470,19 +597,57 @@ function autoAddColorCode(targetContainer) {
 }
 
 function wireAxis(block) {
-  const track = block.querySelector('.axis-track');
-  const dotA  = block.querySelector('.axis-dot--a');
-  const dotB  = block.querySelector('.axis-dot--b');
-  const sliderA = block.querySelector('[data-field="pos_a"]');
-  const sliderB = block.querySelector('[data-field="pos_b"]');
+  const track  = block.querySelector('.axis-track');
+  const dotA   = block.querySelector('.axis-dot--a');
+  const dotB   = block.querySelector('.axis-dot--b');
+  const inputA = block.querySelector('[data-field="pos_a"]');
+  const inputB = block.querySelector('[data-field="pos_b"]');
 
   function update() {
-    dotA.style.left = sliderA.value + '%';
-    dotB.style.left = sliderB.value + '%';
+    dotA.style.left = inputA.value + '%';
+    dotB.style.left = inputB.value + '%';
   }
 
-  sliderA.addEventListener('input', update);
-  sliderB.addEventListener('input', update);
+  function makeDraggable(dot, input) {
+    function onMove(e) {
+      const rect   = track.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const pct    = Math.round(Math.max(0, Math.min(100, (clientX - rect.left) / rect.width * 100)));
+      input.value  = pct;
+      update();
+      scheduleSave();
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+    }
+    function onDown(e) {
+      e.preventDefault();
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onUp);
+    }
+    dot.addEventListener('mousedown', onDown);
+    dot.addEventListener('touchstart', onDown, { passive: false });
+  }
+
+  // Also allow clicking directly on the track to move the nearest dot
+  track.addEventListener('click', e => {
+    if (e.target === dotA || e.target === dotB) return;
+    const rect = track.getBoundingClientRect();
+    const pct  = Math.round(Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100)));
+    const distA = Math.abs(pct - parseInt(inputA.value));
+    const distB = Math.abs(pct - parseInt(inputB.value));
+    (distA <= distB ? inputA : inputB).value = pct;
+    update();
+    scheduleSave();
+  });
+
+  makeDraggable(dotA, inputA);
+  makeDraggable(dotB, inputB);
   update();
 }
 
@@ -515,6 +680,65 @@ function hexToRgba(hex, alpha) {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function darkenHex(hex, factor) {
+  const r = Math.round(parseInt(hex.slice(1,3),16) * (1 - factor));
+  const g = Math.round(parseInt(hex.slice(3,5),16) * (1 - factor));
+  const b = Math.round(parseInt(hex.slice(5,7),16) * (1 - factor));
+  return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+}
+
+function blendHex(hexA, hexB, t) {
+  const p = h => [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const [ra,ga,ba] = p(hexA), [rb,gb,bb] = p(hexB);
+  return '#' + [ra+(rb-ra)*t, ga+(gb-ga)*t, ba+(bb-ba)*t]
+    .map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+}
+
+function applyTheme() {
+  const root = document.documentElement;
+  root.style.setProperty('--accent',       themeAccent);
+  root.style.setProperty('--accent-bg',    hexToRgba(themeAccent, 0.12));
+  root.style.setProperty('--accent-dark',  darkenHex(themeAccent, 0.22));
+  root.style.setProperty('--bg',           themeBg);
+  root.style.setProperty('--surface',      themeSurface);
+  root.style.setProperty('--surface-2',    blendHex(themeSurface, themeBg, 0.4));
+  root.style.setProperty('--border',       themeBorderColor);
+  root.style.setProperty('--text',         themeFontColor);
+  const radiusMap   = { sharp: '0px', rounded: '8px',  pill: '16px' };
+  const radiusSmMap = { sharp: '0px', rounded: '5px',  pill: '10px' };
+  root.style.setProperty('--radius',       radiusMap[themeRadius]   || '8px');
+  root.style.setProperty('--radius-sm',    radiusSmMap[themeRadius] || '5px');
+  root.style.setProperty('--border-style', themeBorder);
+  root.style.setProperty('--font', FONT_STACKS[themeFont] || FONT_STACKS.system);
+  const gfUrl  = FONT_GFONTS[themeFont];
+  let   gfLink = document.getElementById('ys-gfont');
+  if (gfUrl) {
+    if (!gfLink) {
+      gfLink = document.createElement('link');
+      gfLink.id  = 'ys-gfont';
+      gfLink.rel = 'stylesheet';
+      document.head.appendChild(gfLink);
+    }
+    if (gfLink.href !== gfUrl) gfLink.href = gfUrl;
+  } else if (gfLink) {
+    gfLink.href = '';
+  }
+}
+
+function restoreTheme(saved) {
+  if (!saved) return;
+  if (saved.accent)      themeAccent      = saved.accent;
+  if (saved.bg)          themeBg          = saved.bg;
+  if (saved.surface)     themeSurface     = saved.surface;
+  if (saved.borderColor) themeBorderColor = saved.borderColor;
+  if (saved.fontColor)   themeFontColor   = saved.fontColor;
+  if (saved.font)        themeFont        = saved.font;
+  if (saved.radius)      themeRadius      = saved.radius;
+  if (saved.border)      themeBorder      = saved.border;
+  applyTheme();
+  syncThemeBar();
 }
 
 function applyGlobalColors() {
@@ -611,17 +835,28 @@ function addHcItem(list, html) {
   scheduleSave();
 }
 
-function promptGalleryImg(grid, src) {
-  const url = src || prompt('Image URL:');
-  if (!url) return;
+function addGalleryCell(grid, src) {
   const cell = document.createElement('div');
   cell.className = 'gallery-cell';
   cell.innerHTML = `
-    <img class="gallery-img" src="${escAttr(url)}" alt="">
+    <img class="gallery-img" src="${escAttr(src)}" alt="">
     <button class="gallery-del" onclick="this.closest('.gallery-cell').remove();scheduleSave();">✕</button>
   `;
   grid.appendChild(cell);
   scheduleSave();
+}
+
+function pickGalleryImgs(body) {
+  const fileInput = body.querySelector('.gallery-file-input');
+  const grid      = body.querySelector('.gallery-grid');
+  fileInput.onchange = async () => {
+    for (const file of fileInput.files) {
+      const dataUrl = await resizeImage(file, 800, 0.82);
+      addGalleryCell(grid, dataUrl);
+    }
+    fileInput.value = '';
+  };
+  fileInput.click();
 }
 
 function addFicRow(list, item) {
@@ -788,7 +1023,7 @@ function writeBlockData(block, data) {
     data.items.forEach(html => addHcItem(block.querySelector('.hc-list'), html));
 
   if (type === 'gallery' && data.items)
-    data.items.forEach(src => promptGalleryImg(block.querySelector('.gallery-grid'), src));
+    data.items.forEach(src => addGalleryCell(block.querySelector('.gallery-grid'), src));
 
   if (type === 'links' && data.items)
     data.items.forEach(item => addLinkRow(block.querySelector('.links-list'), item));
@@ -841,6 +1076,40 @@ function initBuilderDOM() {
   previewBtn      = document.getElementById('preview-btn');
 
   applyGlobalColors();
+
+  // ── Theme bar ────────────────────────────────
+
+  const tbAccent      = document.getElementById('tb-accent');
+  const tbBg          = document.getElementById('tb-bg');
+  const tbSurface     = document.getElementById('tb-surface');
+  const tbBorderColor = document.getElementById('tb-border-color');
+  const tbFontColor   = document.getElementById('tb-font-color');
+  const tbFont        = document.getElementById('tb-font');
+  const tbRadius      = document.getElementById('tb-radius');
+  const tbBorder      = document.getElementById('tb-border');
+
+  if (tbAccent) {
+    function updateThemeFromBar() {
+      themeAccent      = tbAccent.value;
+      themeBg          = tbBg.value;
+      themeSurface     = tbSurface.value;
+      themeBorderColor = tbBorderColor.value;
+      themeFontColor   = tbFontColor.value;
+      themeFont        = tbFont.value;
+      themeRadius      = tbRadius.value;
+      themeBorder      = tbBorder.value;
+      applyTheme();
+      scheduleSave();
+    }
+    tbAccent.addEventListener('input',      updateThemeFromBar);
+    tbBg.addEventListener('input',          updateThemeFromBar);
+    tbSurface.addEventListener('input',     updateThemeFromBar);
+    tbBorderColor.addEventListener('input', updateThemeFromBar);
+    tbFontColor.addEventListener('input',   updateThemeFromBar);
+    tbFont.addEventListener('change',       updateThemeFromBar);
+    tbRadius.addEventListener('change',     updateThemeFromBar);
+    tbBorder.addEventListener('change',     updateThemeFromBar);
+  }
 
   // ── Container picker ────────────────────────
 
@@ -1010,6 +1279,7 @@ window.initBuilder = function(slug, existingData) {
   const hasDraft = localStorage.getItem(draftKey);
   if (!hasDraft && existingData && existingData.containers) {
     restoreColors(existingData.colors);
+    restoreTheme(existingData.theme);
     existingData.containers.forEach(c => {
       const numId = parseInt(c.id);
       if (numId > idCounter) idCounter = numId;
@@ -1037,7 +1307,7 @@ window.publishArchive = async function(password) {
   const res = await fetch(`/api/archive/${slug}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, data: { containers, colors: { a: colorA, b: colorB } } }),
+    body: JSON.stringify({ password, data: { containers, colors: { a: colorA, b: colorB }, theme: { accent: themeAccent, bg: themeBg, surface: themeSurface, borderColor: themeBorderColor, fontColor: themeFontColor, font: themeFont, radius: themeRadius, border: themeBorder } } }),
   });
   const json = await res.json();
   return { ok: res.ok, error: json.error };
@@ -1048,7 +1318,8 @@ function commitSave() {
   const slug = window.__ys_slug;
   const key  = slug ? `yumearchive_draft_${slug}` : 'yumearchive_v1';
   const containers = readPageState();
-  localStorage.setItem(key, JSON.stringify({ containers, colors: { a: colorA, b: colorB } }));
+  const theme = { accent: themeAccent, bg: themeBg, surface: themeSurface, borderColor: themeBorderColor, fontColor: themeFontColor, font: themeFont, radius: themeRadius, border: themeBorder };
+  localStorage.setItem(key, JSON.stringify({ containers, colors: { a: colorA, b: colorB }, theme }));
   if (saveIndicator) {
     saveIndicator.textContent = 'draft saved';
     setTimeout(() => { saveIndicator.textContent = ''; }, 2000);
@@ -1070,8 +1341,9 @@ window.loadDraft = function(slug) {
   const raw = localStorage.getItem(key);
   if (!raw) return false;
   try {
-    const { containers, colors } = JSON.parse(raw);
+    const { containers, colors, theme } = JSON.parse(raw);
     restoreColors(colors);
+    restoreTheme(theme);
     containers.forEach(c => {
       const numId = parseInt(c.id);
       if (numId > idCounter) idCounter = numId;
@@ -1102,6 +1374,7 @@ window.initViewer = function(slug, data) {
 
   if (!data || !data.containers) return;
   restoreColors(data.colors);
+  restoreTheme(data.theme);
   data.containers.forEach(c => {
     const numId = parseInt(c.id);
     if (numId > idCounter) idCounter = numId;
@@ -1118,4 +1391,10 @@ window.initViewer = function(slug, data) {
     });
   });
   applyGlobalColors();
+
+  // Lock everything — nothing editable on the public page
+  page.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'false'));
+  page.querySelectorAll('input, select, textarea, button').forEach(el => { el.disabled = true; el.tabIndex = -1; });
+  page.querySelectorAll('.axis-dot').forEach(el => el.style.pointerEvents = 'none');
+  page.querySelectorAll('.portrait-img-wrap').forEach(el => el.onclick = null);
 };

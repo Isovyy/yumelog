@@ -128,22 +128,80 @@ export default function EditPage() {
       <link rel="stylesheet" href="/builder.css" />
       <Script src="/builder.js" strategy="afterInteractive" onReady={() => setScriptReady(true)} />
 
-      {/* App bar */}
-      <div className="app-bar">
-        <span className="app-bar__title">/{slug}</span>
-        <span className="app-bar__spacer"></span>
-        {publishMsg && <span className="save-indicator">{publishMsg}</span>}
-        <button className="app-btn" onClick={handlePreview}>
-          {previewing ? 'Edit' : 'Preview'}
-        </button>
-        <button
-          className="app-btn"
-          onClick={handlePublish}
-          disabled={publishing}
-          style={{ background: '#7c6af7', color: '#fff', borderColor: '#7c6af7' }}
-        >
-          {publishing ? 'Publishing…' : 'Publish'}
-        </button>
+      {/* Sticky top chrome */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+
+        {/* App bar */}
+        <div className="app-bar">
+          <span className="app-bar__title">/{slug}</span>
+          <span className="app-bar__spacer"></span>
+          {publishMsg && <span className="save-indicator">{publishMsg}</span>}
+          <button className="app-btn" onClick={handlePreview}>
+            {previewing ? 'Edit' : 'Preview'}
+          </button>
+          <button
+            className="app-btn"
+            onClick={handlePublish}
+            disabled={publishing}
+            style={{ background: '#7c6af7', color: '#fff', borderColor: '#7c6af7' }}
+          >
+            {publishing ? 'Publishing…' : 'Publish'}
+          </button>
+        </div>
+
+        {/* Theme bar */}
+        <div className="theme-bar" id="theme-bar">
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Accent</span>
+            <input type="color" className="theme-bar__wheel" id="tb-accent" defaultValue="#7c6af7" />
+          </label>
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">BG</span>
+            <input type="color" className="theme-bar__wheel" id="tb-bg" defaultValue="#f2f2f2" />
+          </label>
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Card</span>
+            <input type="color" className="theme-bar__wheel" id="tb-surface" defaultValue="#ffffff" />
+          </label>
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Border</span>
+            <input type="color" className="theme-bar__wheel" id="tb-border-color" defaultValue="#e2e2e2" />
+          </label>
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Font</span>
+            <input type="color" className="theme-bar__wheel" id="tb-font-color" defaultValue="#1a1a1a" />
+          </label>
+          <div className="theme-bar__sep" />
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Font</span>
+            <select className="theme-bar__select" id="tb-font" defaultValue="system">
+              <option value="system">System</option>
+              <option value="serif">Serif</option>
+              <option value="mono">Mono</option>
+              <option value="nunito">Nunito</option>
+              <option value="lora">Lora</option>
+            </select>
+          </label>
+          <div className="theme-bar__sep" />
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Corners</span>
+            <select className="theme-bar__select" id="tb-radius" defaultValue="rounded">
+              <option value="rounded">Rounded</option>
+              <option value="sharp">Sharp</option>
+              <option value="pill">Pill</option>
+            </select>
+          </label>
+          <label className="theme-bar__item">
+            <span className="theme-bar__label">Border</span>
+            <select className="theme-bar__select" id="tb-border" defaultValue="solid">
+              <option value="solid">Solid</option>
+              <option value="none">None</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+            </select>
+          </label>
+        </div>
+
       </div>
 
       {/* Builder canvas */}
@@ -189,7 +247,6 @@ export default function EditPage() {
         <div className="picker__group-label">Core</div>
         <button className="picker__option" data-type="ship-header"><span className="picker__icon">✦</span> Ship Header</button>
         <button className="picker__option" data-type="about"><span className="picker__icon">♡</span> About This Ship</button>
-        <button className="picker__option" data-type="ship-tags"><span className="picker__icon">◇</span> Ship Tags</button>
         <button className="picker__option" data-type="links"><span className="picker__icon">↗</span> Links</button>
         <button className="picker__option" data-type="dni"><span className="picker__icon">⊘</span> DNI / Boundaries</button>
         <div className="picker__group-label">Yume-native</div>
