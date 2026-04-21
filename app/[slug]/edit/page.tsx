@@ -289,6 +289,16 @@ export default function EditPage() {
         <div className="format-bar__sep"></div>
         <button className="format-bar__btn" data-cmd="removeFormat">✕ fmt</button>
       </div>
+
+      {/* Crop modal */}
+      <div id="crop-modal" style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 999, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+        <p style={{ color: '#aaa', fontSize: '0.82rem' }}>Drag to select crop area</p>
+        <canvas id="crop-canvas" style={{ display: 'block', cursor: 'crosshair', maxWidth: '90vw', userSelect: 'none' }} />
+        <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <button id="crop-confirm" style={{ background: '#7c6af7', color: '#fff', border: 'none', borderRadius: 6, padding: '0.5em 1.4em', cursor: 'pointer', fontFamily: 'system-ui', fontWeight: 600, fontSize: '0.875rem' }}>Apply crop</button>
+          <button id="crop-cancel"  style={{ background: 'none', color: '#888', border: '1px solid #444', borderRadius: 6, padding: '0.5em 1.2em', cursor: 'pointer', fontFamily: 'system-ui', fontSize: '0.875rem' }}>Cancel</button>
+        </div>
+      </div>
     </>
   )
 }

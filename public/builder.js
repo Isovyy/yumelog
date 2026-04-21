@@ -300,14 +300,15 @@ function blockHTML(type) {
           <div class="portrait-placeholder">◫<br><small>click to upload image</small></div>
         </div>
         <input type="file" accept="image/*" class="portrait-file-input" style="display:none">
-        <select class="portrait-size" data-field="size" onchange="applyPortraitSize(this)">
-          <option value="">Auto</option>
-          <option value="80px">Tiny</option>
-          <option value="140px">Small</option>
-          <option value="220px">Medium</option>
-          <option value="320px">Large</option>
-          <option value="100%">Full</option>
-        </select>
+        <div class="portrait-size-row">
+          <input type="number" class="portrait-size-input" data-field="portrait_w" placeholder="W" min="1"
+                 oninput="applyPortraitSize(this.closest('.block'));scheduleSave()">
+          <span class="portrait-size-sep">×</span>
+          <input type="number" class="portrait-size-input" data-field="portrait_h" placeholder="H" min="1"
+                 oninput="applyPortraitSize(this.closest('.block'));scheduleSave()">
+          <span class="portrait-size-unit">px</span>
+          <button class="portrait-crop-btn" onclick="openCropModal(this.closest('.block'))" style="display:none">✂ Crop</button>
+        </div>
         <div class="rich-area portrait-caption" contenteditable="true" data-field="caption"
              data-placeholder="Add a caption…"></div>
       </div>`;
@@ -548,14 +549,19 @@ function wireBlockBehavior(block) {
 
   // Character portrait — apply saved size
   if (type === 'character-portrait') {
-    const sel = block.querySelector('.portrait-size');
-    if (sel) applyPortraitSize(sel);
+    applyPortraitSize(block);
   }
 }
 
-function applyPortraitSize(select) {
-  const wrap = select.closest('.portrait-block').querySelector('.portrait-img-wrap');
-  wrap.style.maxWidth = select.value || '';
+function applyPortraitSize(block) {
+  const wInput = block.querySelector('[data-field="portrait_w"]');
+  const hInput = block.querySelector('[data-field="portrait_h"]');
+  const wrap   = block.querySelector('.portrait-img-wrap');
+  if (!wrap) return;
+  const w = parseInt(wInput?.value) || 0;
+  const h = parseInt(hInput?.value) || 0;
+  wrap.style.maxWidth = w ? w + 'px' : '';
+  wrap.style.height   = h ? h + 'px' : '';
 }
 
 function wireColorCode(block) {
@@ -902,6 +908,8 @@ function pickPortraitImg(wrap) {
     if (!file) return;
     const dataUrl = await resizeImage(file);
     wrap.innerHTML = `<img src="${escAttr(dataUrl)}" alt="" class="portrait-img">`;
+    const cropBtn = block.querySelector('.portrait-crop-btn');
+    if (cropBtn) cropBtn.style.display = '';
     scheduleSave();
     fileInput.value = '';
   };
@@ -1034,6 +1042,8 @@ function writeBlockData(block, data) {
   if (type === 'character-portrait' && data.img) {
     const wrap = block.querySelector('.portrait-img-wrap');
     if (wrap) wrap.innerHTML = `<img src="${escAttr(data.img)}" alt="" class="portrait-img">`;
+    const cropBtn = block.querySelector('.portrait-crop-btn');
+    if (cropBtn) cropBtn.style.display = '';
   }
 
   // Re-wire dynamic behavior after data load
@@ -1053,6 +1063,89 @@ function escHTML(v) {
 function focusFirstInput(block) {
   const el = block.querySelector('input[type="text"], [contenteditable]');
   if (el) setTimeout(() => el.focus(), 0);
+}
+
+// ─────────────────────────────────────────────
+//  Crop modal
+// ─────────────────────────────────────────────
+
+let _cropImg      = null;
+let _cropCallback = null;
+let _cropX = 0, _cropY = 0, _cropW = 0, _cropH = 0;
+let _cropDragging = false, _cropStartX = 0, _cropStartY = 0;
+
+function openCropModal(block) {
+  const img = block.querySelector('.portrait-img');
+  if (!img) return;
+  _cropCallback = dataUrl => {
+    block.querySelector('.portrait-img-wrap').innerHTML =
+      `<img src="${escAttr(dataUrl)}" alt="" class="portrait-img">`;
+    applyPortraitSize(block);
+    scheduleSave();
+  };
+  const modal  = document.getElementById('crop-modal');
+  const canvas = document.getElementById('crop-canvas');
+  _cropImg = new Image();
+  _cropImg.onload = () => {
+    const maxW = Math.min(680, window.innerWidth  - 80);
+    const maxH = Math.min(520, window.innerHeight - 180);
+    const scale = Math.min(1, maxW / _cropImg.width, maxH / _cropImg.height);
+    canvas.width  = Math.round(_cropImg.width  * scale);
+    canvas.height = Math.round(_cropImg.height * scale);
+    _cropX = 0; _cropY = 0; _cropW = canvas.width; _cropH = canvas.height;
+    _redrawCrop();
+    modal.style.display = 'flex';
+  };
+  _cropImg.src = img.src;
+}
+
+function closeCropModal() {
+  document.getElementById('crop-modal').style.display = 'none';
+  _cropImg = null; _cropCallback = null;
+}
+
+function confirmCrop() {
+  if (!_cropImg || _cropW < 2 || _cropH < 2) { closeCropModal(); return; }
+  const canvas = document.getElementById('crop-canvas');
+  const scaleX = _cropImg.width  / canvas.width;
+  const scaleY = _cropImg.height / canvas.height;
+  const sx = Math.round(_cropX * scaleX);
+  const sy = Math.round(_cropY * scaleY);
+  const sw = Math.round(_cropW * scaleX);
+  const sh = Math.round(_cropH * scaleY);
+  const maxPx = 800;
+  const s = Math.min(1, maxPx / Math.max(sw, sh));
+  const out = document.createElement('canvas');
+  out.width  = Math.round(sw * s);
+  out.height = Math.round(sh * s);
+  out.getContext('2d').drawImage(_cropImg, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  if (_cropCallback) _cropCallback(out.toDataURL('image/jpeg', 0.82));
+  closeCropModal();
+}
+
+function _redrawCrop() {
+  const canvas = document.getElementById('crop-canvas');
+  if (!canvas || !_cropImg) return;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(_cropImg, 0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, canvas.width, _cropY);
+  ctx.fillRect(0, _cropY + _cropH, canvas.width, canvas.height - _cropY - _cropH);
+  ctx.fillRect(0, _cropY, _cropX, _cropH);
+  ctx.fillRect(_cropX + _cropW, _cropY, canvas.width - _cropX - _cropW, _cropH);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth   = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(_cropX + 0.75, _cropY + 0.75, _cropW - 1.5, _cropH - 1.5);
+  ctx.setLineDash([]);
+  const hs = 7;
+  ctx.fillStyle = '#fff';
+  [
+    [_cropX,         _cropY        ],
+    [_cropX + _cropW, _cropY        ],
+    [_cropX,         _cropY + _cropH],
+    [_cropX + _cropW, _cropY + _cropH],
+  ].forEach(([x, y]) => ctx.fillRect(x - hs / 2, y - hs / 2, hs, hs));
 }
 
 // ─────────────────────────────────────────────
@@ -1109,6 +1202,38 @@ function initBuilderDOM() {
     tbFont.addEventListener('change',       updateThemeFromBar);
     tbRadius.addEventListener('change',     updateThemeFromBar);
     tbBorder.addEventListener('change',     updateThemeFromBar);
+  }
+
+  // ── Crop modal ───────────────────────────────
+
+  const cropCanvas = document.getElementById('crop-canvas');
+  if (cropCanvas) {
+    function _cropPointerDown(clientX, clientY) {
+      const r  = cropCanvas.getBoundingClientRect();
+      _cropStartX   = clientX - r.left;
+      _cropStartY   = clientY - r.top;
+      _cropDragging = true;
+      _cropX = _cropStartX; _cropY = _cropStartY; _cropW = 0; _cropH = 0;
+    }
+    function _cropPointerMove(clientX, clientY) {
+      if (!_cropDragging) return;
+      const r = cropCanvas.getBoundingClientRect();
+      const x = Math.max(0, Math.min(cropCanvas.width,  clientX - r.left));
+      const y = Math.max(0, Math.min(cropCanvas.height, clientY - r.top));
+      _cropX = Math.min(_cropStartX, x);
+      _cropY = Math.min(_cropStartY, y);
+      _cropW = Math.abs(x - _cropStartX);
+      _cropH = Math.abs(y - _cropStartY);
+      _redrawCrop();
+    }
+    cropCanvas.addEventListener('mousedown',  e => _cropPointerDown(e.clientX, e.clientY));
+    document.addEventListener('mousemove',    e => _cropPointerMove(e.clientX, e.clientY));
+    document.addEventListener('mouseup',      ()  => { _cropDragging = false; });
+    cropCanvas.addEventListener('touchstart', e => { e.preventDefault(); _cropPointerDown(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+    cropCanvas.addEventListener('touchmove',  e => { e.preventDefault(); _cropPointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+    cropCanvas.addEventListener('touchend',   ()  => { _cropDragging = false; });
+    document.getElementById('crop-confirm').addEventListener('click', confirmCrop);
+    document.getElementById('crop-cancel').addEventListener('click',  closeCropModal);
   }
 
   // ── Container picker ────────────────────────

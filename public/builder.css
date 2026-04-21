@@ -581,11 +581,43 @@ select { cursor: pointer; }
 
 .portrait-img {
   width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.portrait-size    { font-size: 0.72rem; width: auto; padding: 0.25em 0.4em; }
+.portrait-size-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  width: 100%;
+}
+
+.portrait-size-input {
+  width: 52px;
+  font-size: 0.72rem;
+  padding: 0.2em 0.3em;
+  text-align: center;
+}
+
+.portrait-size-sep,
+.portrait-size-unit { color: var(--muted); font-size: 0.72rem; }
+
+.portrait-crop-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 0.18em 0.5em;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+}
+.portrait-crop-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 .portrait-caption { font-size: 0.85rem; color: var(--muted); text-align: center; width: 100%; }
 
 /* ── Speech bubbles ── */
@@ -1150,7 +1182,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0; }
 .preview-mode textarea                       { pointer-events: none; border-color: transparent !important; background: transparent !important; }
 .preview-mode .age-name:placeholder-shown    { display: none; }
 .preview-mode .portrait-img-wrap             { pointer-events: none; cursor: default; }
-.preview-mode .portrait-size                 { display: none; }
+.preview-mode .portrait-size-row             { display: none; }
 .preview-mode .axis-dot                      { pointer-events: none; cursor: default; }
 .preview-mode .axis-track                    { cursor: default; }
 
