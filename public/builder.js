@@ -325,8 +325,8 @@ function blockHTML(type) {
         <input type="hidden" data-field="pos_a" value="30">
         <input type="hidden" data-field="pos_b" value="70">
         <div class="axis-poles">
-          <input class="axis-pole" data-field="left"  type="text" placeholder="left pole">
-          <input class="axis-pole axis-pole--right" data-field="right" type="text" placeholder="right pole">
+          <input class="axis-pole" data-field="left"  type="text" placeholder="←">
+          <input class="axis-pole axis-pole--right" data-field="right" type="text" placeholder="→">
         </div>
         <div class="axis-track">
           <div class="axis-dot axis-dot--a" data-dot="a"></div>
@@ -466,10 +466,7 @@ function clearDropIndicators() {
 }
 
 function setupBlockDrag(block) {
-  const toolbar = block.querySelector('.block-toolbar');
-  block.setAttribute('draggable', 'false');
-
-  toolbar.addEventListener('mousedown', () => block.setAttribute('draggable', 'true'));
+  block.setAttribute('draggable', 'true');
 
   block.addEventListener('dragstart', e => {
     if (block.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
@@ -480,7 +477,6 @@ function setupBlockDrag(block) {
   });
 
   block.addEventListener('dragend', () => {
-    block.setAttribute('draggable', 'false');
     block.classList.remove('block--dragging');
     clearDropIndicators();
     dragBlock = null;
@@ -1288,6 +1284,11 @@ function initBuilderDOM() {
     });
   }
 
+  new MutationObserver(() => {
+    const inPreview = document.body.classList.contains('preview-mode');
+    page.querySelectorAll('.block').forEach(b => b.setAttribute('draggable', inPreview ? 'false' : 'true'));
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
   // ── Format bar ───────────────────────────────
 
   document.addEventListener('selectionchange', () => {
@@ -1520,6 +1521,7 @@ window.initViewer = function(slug, data) {
   // Lock everything — nothing editable on the public page
   page.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'false'));
   page.querySelectorAll('input, select, textarea, button').forEach(el => { el.disabled = true; el.tabIndex = -1; });
-  page.querySelectorAll('.axis-dot').forEach(el => el.style.pointerEvents = 'none');
+  page.querySelectorAll('.block').forEach(el => el.setAttribute('draggable', 'false'));
+  page.querySelectorAll('.axis-dot, .axis-track').forEach(el => el.style.pointerEvents = 'none');
   page.querySelectorAll('.portrait-img-wrap').forEach(el => el.onclick = null);
 };
