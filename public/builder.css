@@ -28,7 +28,7 @@
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-html { font-size: 16px; }
+html { font-size: clamp(11px, 7.8px + 0.57vw, 16px); }
 body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.55; min-height: 100vh; }
 img  { display: block; max-width: 100%; }
 
@@ -971,18 +971,23 @@ input[type="number"].ha-height::-webkit-inner-spin-button { -webkit-appearance: 
 .stats-block { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .stat-row {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
   align-items: center;
 }
+.stat-row > input, .stat-row > select { flex: 1; min-width: 0; }
 
 .stat-label {
+  flex: none;
+  max-width: 55%;
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Links ── */
