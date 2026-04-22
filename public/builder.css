@@ -377,6 +377,7 @@ img  { display: block; max-width: 100%; }
 .toolbar-btn:hover         { color: var(--text); background: var(--border); }
 .toolbar-btn--del:hover    { color: var(--danger); background: var(--danger-bg); }
 .toolbar-btn--sm           { font-size: 0.65rem; padding: 0.1rem 0.22rem; }
+.toolbar-size-sel          { font-size: 0.68rem; height: 22px; padding: 0 0.3em; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); cursor: pointer; }
 
 /* ── Shared inputs ── */
 
@@ -738,8 +739,8 @@ select { cursor: pointer; }
 
 .wdw-header {
   display: grid;
-  grid-template-columns: 1fr 40px 40px 24px;
-  gap: 0.4rem;
+  grid-template-columns: 1fr 28px 28px 18px;
+  gap: 0.25rem;
   align-items: center;
   padding-bottom: 0.3rem;
   border-bottom: 1px solid var(--border);
@@ -759,8 +760,8 @@ select { cursor: pointer; }
 
 .wdw-row {
   display: grid;
-  grid-template-columns: 1fr 40px 40px 24px;
-  gap: 0.4rem;
+  grid-template-columns: 1fr 28px 28px 18px;
+  gap: 0.25rem;
   align-items: center;
 }
 
@@ -1198,7 +1199,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0; }
 .preview-mode .block                         { cursor: default !important; }
 .preview-mode [contenteditable]              { pointer-events: none; cursor: default; }
 .preview-mode input, .preview-mode select,
-.preview-mode textarea                       { pointer-events: none; border-color: transparent !important; background: transparent !important; }
+.preview-mode textarea                       { pointer-events: none; border-color: transparent !important; background: transparent !important; color: inherit; -webkit-text-fill-color: inherit; opacity: 1; }
+.preview-mode .stats-block select            { appearance: none; -webkit-appearance: none; }
 .preview-mode input[type="checkbox"]         { pointer-events: none; cursor: default; }
 .preview-mode .age-name:placeholder-shown    { display: none; }
 .preview-mode .portrait-img-wrap             { pointer-events: none; cursor: default; }

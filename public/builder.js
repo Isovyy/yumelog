@@ -175,6 +175,7 @@ function addBlock(type, data, existingId, targetCol) {
       <button class="toolbar-btn toolbar-btn--sm" title="Move right" onclick="moveBlockToCol(this, 1)">→</button>
       <button class="toolbar-btn toolbar-btn--sm" title="Move up"    onclick="moveBlock(this,-1)">↑</button>
       <button class="toolbar-btn toolbar-btn--sm" title="Move down"  onclick="moveBlock(this, 1)">↓</button>
+      ${TEXT_SIZE_TYPES.has(type) ? `<select class="toolbar-size-sel" title="Font size"><option value="">—</option><option value="xs">XS</option><option value="sm">S</option><option value="lg">L</option><option value="xl">XL</option></select>` : ''}
       <button class="toolbar-btn toolbar-btn--sm toolbar-btn--del"   title="Delete" onclick="removeBlock(this)">✕</button>
     </div>
     <div class="block-body">${blockHTML(type)}</div>
@@ -547,6 +548,16 @@ function wireBlockBehavior(block) {
   if (type === 'character-portrait') {
     applyPortraitSize(block);
   }
+
+  // Text blocks — font size select
+  if (TEXT_SIZE_TYPES.has(type)) {
+    const sel  = block.querySelector('.toolbar-size-sel');
+    const body = block.querySelector('.block-body');
+    if (sel && body) {
+      sel.addEventListener('change', () => { body.style.fontSize = FONT_SIZE_MAP[sel.value] || ''; scheduleSave(); });
+      body.style.fontSize = FONT_SIZE_MAP[sel.value] || '';
+    }
+  }
 }
 
 function applyPortraitSize(block) {
@@ -587,6 +598,8 @@ function syncThemeBar() {
 }
 
 const COLOR_DEPENDENT_TYPES = new Set(['height-diff', 'dynamic-axis', 'speech-bubbles']);
+const TEXT_SIZE_TYPES = new Set(['text','heading','about','quote-letter','headcanons','fic-recs','links','dni','speech-bubbles']);
+const FONT_SIZE_MAP = { xs: '0.72rem', sm: '0.82rem', lg: '1rem', xl: '1.15rem' };
 
 function autoAddColorCode(targetContainer) {
   if (page.querySelector('.block[data-type="color-code"]')) return;
@@ -997,6 +1010,11 @@ function readBlockData(block) {
     if (img) data.img = img.src;
   }
 
+  if (TEXT_SIZE_TYPES.has(type)) {
+    const sel = block.querySelector('.toolbar-size-sel');
+    if (sel) data.font_size = sel.value;
+  }
+
   return data;
 }
 
@@ -1040,6 +1058,15 @@ function writeBlockData(block, data) {
     if (wrap) wrap.innerHTML = `<img src="${escAttr(data.img)}" alt="" class="portrait-img">`;
     const cropBtn = block.querySelector('.portrait-crop-btn');
     if (cropBtn) cropBtn.style.display = '';
+  }
+
+  if (TEXT_SIZE_TYPES.has(type) && data.font_size) {
+    const sel  = block.querySelector('.toolbar-size-sel');
+    const body = block.querySelector('.block-body');
+    if (sel && body) {
+      sel.value = data.font_size;
+      body.style.fontSize = FONT_SIZE_MAP[sel.value] || '';
+    }
   }
 
   // Re-wire dynamic behavior after data load
