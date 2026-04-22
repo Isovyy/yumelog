@@ -685,6 +685,7 @@ select { cursor: pointer; }
   display: flex;
   justify-content: space-between;
   gap: 0.25rem;
+  overflow: hidden;
 }
 .axis-pole {
   font-size: 0.4rem;
@@ -692,9 +693,13 @@ select { cursor: pointer; }
   border-color: transparent;
   background: transparent;
   padding: 0;
-  width: auto;
+  flex: 1;
   min-width: 0;
+  width: 0;
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .axis-pole--right { text-align: right; }
 .axis-pole:focus  { border-color: var(--accent); background: var(--surface); }
